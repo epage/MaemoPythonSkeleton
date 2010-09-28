@@ -14,7 +14,6 @@ from PyQt4 import QtCore
 import constants
 import maeqt
 from util import misc as misc_utils
-import unit_data
 
 
 _moduleLogger = logging.getLogger(__name__)
