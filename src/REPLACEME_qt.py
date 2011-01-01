@@ -30,18 +30,19 @@ class REPLACEME(object):
 
 	def __init__(self, app):
 		self._dataPath = ""
-		for dataPath in self._DATA_PATHS:
-			appIconPath = os.path.join(dataPath, "pixmaps", "%s.png" %  constants.__app_name__)
-			if os.path.isfile(appIconPath):
-				self._dataPath = dataPath
-				break
+		if False:
+			for dataPath in self._DATA_PATHS:
+				appIconPath = os.path.join(dataPath, "pixmaps", "%s.png" %  constants.__app_name__)
+				if os.path.isfile(appIconPath):
+					self._dataPath = dataPath
+					break
+			else:
+				raise RuntimeError("UI Descriptor not found!")
 		else:
-			raise RuntimeError("UI Descriptor not found!")
+			appIconPath = ""
 		self._app = app
 		self._appIconPath = appIconPath
 		self._recent = []
-		self._hiddenCategories = set()
-		self._hiddenUnits = {}
 		self._clipboard = QtGui.QApplication.clipboard()
 
 		self._mainWindow = None
@@ -152,7 +153,12 @@ class MainWindow(object):
 	def __init__(self, parent, app):
 		self._app = app
 
+		self._errorLog = qui_utils.QErrorLog()
+		self._errorDisplay = qui_utils.ErrorDisplay(self._errorLog)
+
 		self._layout = QtGui.QVBoxLayout()
+		self._layout.setContentsMargins(0, 0, 0, 0)
+		self._layout.addWidget(self._errorDisplay.toplevel)
 
 		centralWidget = QtGui.QWidget()
 		centralWidget.setLayout(self._layout)
@@ -207,12 +213,15 @@ class MainWindow(object):
 
 	def start(self):
 		pass
+
 	def close(self):
 		for child in self.walk_children():
 			child.window.destroyed.disconnect(self._on_child_close)
 			child.close()
 		self._window.close()
 
+	def destroy(self):
+		pass
 
 	def show(self):
 		self._window.show()
@@ -231,6 +240,13 @@ class MainWindow(object):
 			self._window.showNormal()
 		for child in self.walk_children():
 			child.set_fullscreen(isFullscreen)
+
+	def _on_about(self, checked = True):
+		with qui_utils.notify_error(self._errorLog):
+			if self._aboutDialog is None:
+				import dialogs
+				self._aboutDialog = dialogs.AboutDialog(self._app)
+			response = self._aboutDialog.run()
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
