@@ -241,6 +241,7 @@ class MainWindow(object):
 		for child in self.walk_children():
 			child.set_fullscreen(isFullscreen)
 
+	@misc_utils.log_exception(_moduleLogger)
 	def _on_about(self, checked = True):
 		with qui_utils.notify_error(self._errorLog):
 			if self._aboutDialog is None:
