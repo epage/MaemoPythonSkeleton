@@ -3,7 +3,6 @@
 
 from __future__ import with_statement
 
-import sys
 import os
 import simplejson
 import logging
@@ -12,24 +11,21 @@ from PyQt4 import QtGui
 from PyQt4 import QtCore
 
 import constants
-import maeqt
+from util import qui_utils
 from util import misc as misc_utils
 
 
 _moduleLogger = logging.getLogger(__name__)
 
 
-IS_MAEMO = True
-
-
 class REPLACEME(object):
 
 	_DATA_PATHS = [
 		os.path.dirname(__file__),
+		os.path.join(os.path.dirname(__file__), "../share"),
 		os.path.join(os.path.dirname(__file__), "../data"),
-		os.path.join(os.path.dirname(__file__), "../lib"),
 		'/usr/share/%s' % constants.__app_name__,
-		'/usr/lib/%s' % constants.__app_name__,
+		'/opt/%s/share' % constants.__app_name__,
 	]
 
 	def __init__(self, app):
@@ -67,7 +63,17 @@ class REPLACEME(object):
 		self._quitAction.triggered.connect(self._on_quit)
 
 		self._app.lastWindowClosed.connect(self._on_app_quit)
+		self._mainWindow = MainWindow(None, self)
+		self._mainWindow.window.destroyed.connect(self._on_child_close)
+
 		self.load_settings()
+
+		self._mainWindow.show()
+		self._idleDelay = QtCore.QTimer()
+		self._idleDelay.setSingleShot(True)
+		self._idleDelay.setInterval(0)
+		self._idleDelay.timeout.connect(lambda: self._mainWindow.start())
+		self._idleDelay.start()
 
 	def load_settings(self):
 		try:
@@ -107,17 +113,22 @@ class REPLACEME(object):
 
 	def _close_windows(self):
 		if self._mainWindow is not None:
+			self.save_settings()
 			self._mainWindow.window.destroyed.disconnect(self._on_child_close)
 			self._mainWindow.close()
 			self._mainWindow = None
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_app_quit(self, checked = False):
-		self.save_settings()
+		if self._mainWindow is not None:
+			self.save_settings()
+			self._mainWindow.destroy()
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_child_close(self, obj = None):
-		self._mainWindow = None
+		if self._mainWindow is not None:
+			self.save_settings()
+			self._mainWindow = None
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_toggle_fullscreen(self, checked = False):
@@ -145,24 +156,30 @@ class MainWindow(object):
 
 		centralWidget = QtGui.QWidget()
 		centralWidget.setLayout(self._layout)
+		centralWidget.setContentsMargins(0, 0, 0, 0)
 
 		self._window = QtGui.QMainWindow(parent)
 		self._window.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
-		maeqt.set_autorient(self._window, True)
-		maeqt.set_stackable(self._window, True)
+		qui_utils.set_autorient(self._window, True)
+		qui_utils.set_stackable(self._window, True)
 		self._window.setWindowTitle("%s" % constants.__pretty_app_name__)
 		self._window.setWindowIcon(QtGui.QIcon(self._app.appIconPath))
 		self._window.setCentralWidget(centralWidget)
+
+		self._aboutAction = QtGui.QAction(None)
+		self._aboutAction.setText("About")
+		self._aboutAction.triggered.connect(self._on_about)
 
 		self._closeWindowAction = QtGui.QAction(None)
 		self._closeWindowAction.setText("Close")
 		self._closeWindowAction.setShortcut(QtGui.QKeySequence("CTRL+w"))
 		self._closeWindowAction.triggered.connect(self._on_close_window)
 
-		if IS_MAEMO:
+		if constants.IS_MAEMO:
 			fileMenu = self._window.menuBar().addMenu("&File")
 
 			viewMenu = self._window.menuBar().addMenu("&View")
+			viewMenu.addAction(self._aboutAction)
 
 			self._window.addAction(self._closeWindowAction)
 			self._window.addAction(self._app.quitAction)
@@ -174,6 +191,7 @@ class MainWindow(object):
 
 			viewMenu = self._window.menuBar().addMenu("&View")
 			viewMenu.addAction(self._app.fullscreenAction)
+			viewMenu.addAction(self._aboutAction)
 
 		self._window.addAction(self._app.logAction)
 
@@ -187,6 +205,15 @@ class MainWindow(object):
 	def walk_children(self):
 		return ()
 
+	def start(self):
+		pass
+	def close(self):
+		for child in self.walk_children():
+			child.window.destroyed.disconnect(self._on_child_close)
+			child.close()
+		self._window.close()
+
+
 	def show(self):
 		self._window.show()
 		for child in self.walk_children():
@@ -196,12 +223,6 @@ class MainWindow(object):
 		for child in self.walk_children():
 			child.hide()
 		self._window.hide()
-
-	def close(self):
-		for child in self.walk_children():
-			child.window.destroyed.disconnect(self._on_child_close)
-			child.close()
-		self._window.close()
 
 	def set_fullscreen(self, isFullscreen):
 		if isFullscreen:
@@ -223,7 +244,10 @@ def run():
 
 
 if __name__ == "__main__":
-	logging.basicConfig(level = logging.DEBUG)
+	import sys
+
+	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
+	logging.basicConfig(level=logging.DEBUG, format=logFormat)
 	try:
 		os.makedirs(constants._data_path_)
 	except OSError, e:

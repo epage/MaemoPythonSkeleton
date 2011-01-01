@@ -1,0 +1,2 @@
+Redirect permanent /index.html http://wiki.maemo.org/REPLACEME
+Redirect 301 /index.html http://wiki.maemo.org/REPLACEME

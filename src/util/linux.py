@@ -29,17 +29,20 @@ def set_process_name(name):
 
 
 def get_new_resource(resourceType, resource, name):
-	if resourceType == "data":
-		base = BaseDirectory.xdg_data_home
-		if base == "/usr/share/mime":
-			# Ugly hack because somehow Maemo 4.1 seems to be set to this
-			base = os.path.join(os.path.expanduser("~"), ".%s" % resource)
-	elif resourceType == "config":
-		base = BaseDirectory.xdg_config_home
-	elif resourceType == "cache":
-		base = BaseDirectory.xdg_cache_home
+	if BaseDirectory is not None:
+		if resourceType == "data":
+			base = BaseDirectory.xdg_data_home
+			if base == "/usr/share/mime":
+				# Ugly hack because somehow Maemo 4.1 seems to be set to this
+				base = os.path.join(os.path.expanduser("~"), ".%s" % resource)
+		elif resourceType == "config":
+			base = BaseDirectory.xdg_config_home
+		elif resourceType == "cache":
+			base = BaseDirectory.xdg_cache_home
+		else:
+			raise RuntimeError("Unknown type: "+resourceType)
 	else:
-		raise RuntimeError("Unknown type: "+resourceType)
+		base = os.path.join(os.path.expanduser("~"), ".%s" % resource)
 
 	filePath = os.path.join(base, resource, name)
 	dirPath = os.path.dirname(filePath)

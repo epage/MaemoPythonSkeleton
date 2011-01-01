@@ -1,4 +1,4 @@
-#!/usr/bin/python2.5
+#!/usr/bin/env python
 
 import os
 import sys
@@ -11,7 +11,7 @@ except ImportError:
 import constants
 
 
-__appname__ = constants.__app_name__
+__app_name__ = constants.__app_name__
 __description__ = """REPLACEME
 REPLACEME
 .
@@ -63,7 +63,7 @@ def build_package(distribution):
 		pass
 
 	py2deb.Py2deb.SECTIONS = py2deb.SECTIONS_BY_POLICY[distribution]
-	p = py2deb.Py2deb(__appname__)
+	p = py2deb.Py2deb(__app_name__)
 	p.prettyName = constants.__pretty_app_name__
 	p.description = __description__
 	p.bugTracker = "REPLACEME"
@@ -101,22 +101,23 @@ def build_package(distribution):
 		"diablo": "REPLACEME",
 		"fremantle": "REPLACEME", # Fremantle natively uses 48x48
 	}[distribution]
-	p["/opt/%s/bin" % constants.__appname__] = [ "%s.py" % constants.__appname__ ]
+	p["/opt/%s/bin" % constants.__app_name__] = [ "%s.py" % constants.__app_name__ ]
 	for relPath, files in unflatten_files(find_files("src", ".")).iteritems():
-		fullPath = "/opt/%s/lib" % constants.__appname__
+		fullPath = "/opt/%s/lib" % constants.__app_name__
 		if relPath:
 			fullPath += os.sep+relPath
 		p[fullPath] = list(
 			"|".join((oldName, newName))
 			for (oldName, newName) in files
 		)
-	p["/usr/share/applications/hildon"] = ["%s.desktop" % constants.__appname__]
-	p["/usr/share/icons/hicolor/26x26/hildon"] = ["%s.png" % constants.__appname__]
-	p["/usr/share/icons/hicolor/64x64/hildon"] = ["%s.png" % constants.__appname__]
-	p["/usr/share/icons/hicolor/scalable/hildon"] = ["%s.png" % constants.__appname__]
+	p["/usr/share/applications/hildon"] = ["%s.desktop" % constants.__app_name__]
+	p["/usr/share/icons/hicolor/26x26/hildon"] = ["%s.png" % constants.__app_name__]
+	p["/usr/share/icons/hicolor/48x48/hildon"] = ["%s.png" % constants.__app_name__]
+	p["/usr/share/icons/hicolor/64x64/hildon"] = ["%s.png" % constants.__app_name__]
+	p["/usr/share/icons/hicolor/scalable/hildon"] = ["%s.png" % constants.__app_name__]
 
+	print p
 	if distribution == "debian":
-		print p
 		print p.generate(
 			version="%s-%s" % (__version__, __build__),
 			changelog=__changelog__,
@@ -125,9 +126,7 @@ def build_package(distribution):
 			changes=False,
 			dsc=False,
 		)
-		print "Building for %s finished" % distribution
 	else:
-		print p
 		print p.generate(
 			version="%s-%s" % (__version__, __build__),
 			changelog=__changelog__,
@@ -136,20 +135,12 @@ def build_package(distribution):
 			changes=True,
 			dsc=True,
 		)
-		print "Building for %s finished" % distribution
+	print "Building for %s finished" % distribution
 
 
 if __name__ == "__main__":
-	if len(sys.argv) > 1:
-		try:
-			import optparse
-		except ImportError:
-			optparse = None
-
-		if optparse is not None:
-			parser = optparse.OptionParser()
-			(commandOptions, commandArgs) = parser.parse_args()
+	if len(sys.argv) == 1:
+		distribution = "fremantle"
 	else:
-		commandArgs = None
-		commandArgs = ["diablo"]
-	build_package(commandArgs[0])
+		distribution = sys.argv[1]
+	build_package(distribution)

@@ -1,13 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""
-Copyright (C) 2007 Christoph Würstle
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
-"""
-
 
 import os
 import sys
@@ -19,7 +12,7 @@ sys.path.append("/opt/REPLACEME/lib")
 
 
 import constants
-import REPLACEME_gtk
+import REPLACEME_qt
 
 
 if __name__ == "__main__":
@@ -42,4 +35,4 @@ if __name__ == "__main__":
 	_moduleLogger.info("Kernel: %s (%s) for %s" % os.uname()[2:])
 	_moduleLogger.info("Hostname: %s" % os.uname()[1])
 
-	REPLACEME_gtk.run()
+	REPLACEME_qt.run()
