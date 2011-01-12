@@ -10,7 +10,6 @@ import logging
 from PyQt4 import QtGui
 
 import constants
-from util import qui_utils
 from util import qwrappers
 
 
@@ -74,8 +73,6 @@ class MainWindow(qwrappers.WindowWrapper):
 
 	def __init__(self, parent, app):
 		qwrappers.WindowWrapper.__init__(self, parent, app)
-		self._errorLog = qui_utils.QErrorLog()
-		self._errorDisplay = qui_utils.ErrorDisplay(self._errorLog)
 		self._window.setWindowTitle("%s" % constants.__pretty_app_name__)
 		self._window.setWindowIcon(QtGui.QIcon(self._app.appIconPath))
 

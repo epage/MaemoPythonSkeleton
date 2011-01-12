@@ -1,5 +1,6 @@
 import sys
 import contextlib
+import datetime
 import logging
 
 from PyQt4 import QtCore
@@ -19,15 +20,25 @@ def notify_error(log):
 		log.push_exception()
 
 
+@contextlib.contextmanager
+def notify_busy(log, message):
+	log.push_busy(message)
+	try:
+		yield
+	finally:
+		log.pop(message)
+
+
 class ErrorMessage(object):
 
-	LEVEL_BUSY = "busy"
-	LEVEL_INFO = "info"
-	LEVEL_ERROR = "error"
+	LEVEL_ERROR = 0
+	LEVEL_BUSY = 1
+	LEVEL_INFO = 2
 
 	def __init__(self, message, level):
 		self._message = message
 		self._level = level
+		self._time = datetime.datetime.now()
 
 	@property
 	def level(self):
@@ -36,6 +47,9 @@ class ErrorMessage(object):
 	@property
 	def message(self):
 		return self._message
+
+	def __repr__(self):
+		return "%s.%s(%r, %r)" % (__name__, self.__class__.__name__, self._message, self._level)
 
 
 class QErrorLog(QtCore.QObject):
@@ -82,6 +96,8 @@ class QErrorLog(QtCore.QObject):
 
 	def _push_message(self, message, level):
 		self._messages.append(ErrorMessage(message, level))
+		# Sort is defined as stable, so this should be fine
+		self._messages.sort(key=lambda x: x.level)
 		self.messagePushed.emit()
 
 	def __len__(self):
@@ -100,8 +116,8 @@ class ErrorDisplay(object):
 		self._icons = {
 			ErrorMessage.LEVEL_BUSY:
 				get_theme_icon(
-					#("process-working", "gtk-refresh")
-					("gtk-refresh", )
+					#("process-working", "view-refresh", "general_refresh", "gtk-refresh")
+					("view-refresh", "general_refresh", "gtk-refresh", )
 				).pixmap(32, 32),
 			ErrorMessage.LEVEL_INFO:
 				get_theme_icon(
@@ -132,15 +148,19 @@ class ErrorDisplay(object):
 		self._controlLayout.addWidget(self._message, 1000)
 		self._controlLayout.addWidget(self._closeLabel, 1, QtCore.Qt.AlignCenter)
 
-		self._topLevelLayout = QtGui.QHBoxLayout()
-		self._topLevelLayout.addLayout(self._controlLayout)
 		self._widget = QtGui.QWidget()
-		self._widget.setLayout(self._topLevelLayout)
+		self._widget.setLayout(self._controlLayout)
 		self._widget.hide()
 
 	@property
 	def toplevel(self):
 		return self._widget
+
+	def _show_error(self):
+		error = self._errorLog.peek_message()
+		self._message.setText(error.message)
+		self._severityLabel.setPixmap(self._icons[error.level])
+		self._widget.show()
 
 	@QtCore.pyqtSlot()
 	@QtCore.pyqtSlot(bool)
@@ -151,11 +171,7 @@ class ErrorDisplay(object):
 	@QtCore.pyqtSlot()
 	@misc.log_exception(_moduleLogger)
 	def _on_message_pushed(self):
-		if 1 <= len(self._errorLog) and self._widget.isHidden():
-			error = self._errorLog.peek_message()
-			self._message.setText(error.message)
-			self._severityLabel.setPixmap(self._icons[error.level])
-			self._widget.show()
+		self._show_error()
 
 	@QtCore.pyqtSlot()
 	@misc.log_exception(_moduleLogger)
@@ -164,14 +180,16 @@ class ErrorDisplay(object):
 			self._message.setText("")
 			self._widget.hide()
 		else:
-			error = self._errorLog.peek_message()
-			self._message.setText(error.message)
-			self._severityLabel.setPixmap(self._icons[error.level])
+			self._show_error()
 
 
 class QHtmlDelegate(QtGui.QStyledItemDelegate):
 
-	# @bug Not showing all of a message
+	UNDEFINED_SIZE = -1
+
+	def __init__(self, *args, **kwd):
+		QtGui.QStyledItemDelegate.__init__(*((self, ) + args), **kwd)
+		self._width = self.UNDEFINED_SIZE
 
 	def paint(self, painter, option, index):
 		newOption = QtGui.QStyleOptionViewItemV4(option)
@@ -213,13 +231,21 @@ class QHtmlDelegate(QtGui.QStyledItemDelegate):
 		doc.documentLayout().draw(painter, ctx)
 		painter.restore()
 
+	def setWidth(self, width):
+		# @bug we need to be emitting sizeHintChanged but it requires an index
+		self._width = width
+
 	def sizeHint(self, option, index):
 		newOption = QtGui.QStyleOptionViewItemV4(option)
 		self.initStyleOption(newOption, index)
 
 		doc = QtGui.QTextDocument()
 		doc.setHtml(newOption.text)
-		doc.setTextWidth(newOption.rect.width())
+		if self._width != self.UNDEFINED_SIZE:
+			width = self._width
+		else:
+			width = newOption.rect.width()
+		doc.setTextWidth(width)
 		size = QtCore.QSize(doc.idealWidth(), doc.size().height())
 		return size
 
@@ -244,7 +270,7 @@ def _null_set_autorient(window, isStackable):
 
 
 def _maemo_set_autorient(window, isStackable):
-	window.setAttribute(QtCore.Qt.WA_Maemo5StackedWindow, isStackable)
+	window.setAttribute(QtCore.Qt.WA_Maemo5AutoOrientation, isStackable)
 
 
 try:
@@ -254,34 +280,35 @@ except AttributeError:
 	set_autorient = _null_set_autorient
 
 
-def _null_set_landscape(window, isStackable):
+def screen_orientation():
+	geom = QtGui.QApplication.desktop().screenGeometry()
+	if geom.width() <= geom.height():
+		return QtCore.Qt.Vertical
+	else:
+		return QtCore.Qt.Horizontal
+
+
+def _null_set_window_orientation(window, orientation):
 	pass
 
 
-def _maemo_set_landscape(window, isStackable):
-	window.setAttribute(QtCore.Qt.WA_Maemo5StackedWindow, isStackable)
+def _maemo_set_window_orientation(window, orientation):
+	if orientation == QtCore.Qt.Vertical:
+		oldHint = QtCore.Qt.WA_Maemo5LandscapeOrientation
+		newHint = QtCore.Qt.WA_Maemo5PortraitOrientation
+	elif orientation == QtCore.Qt.Horizontal:
+		oldHint = QtCore.Qt.WA_Maemo5PortraitOrientation
+		newHint = QtCore.Qt.WA_Maemo5LandscapeOrientation
+	window.setAttribute(oldHint, False)
+	window.setAttribute(newHint, True)
 
 
 try:
 	QtCore.Qt.WA_Maemo5LandscapeOrientation
-	set_landscape = _maemo_set_landscape
-except AttributeError:
-	set_landscape = _null_set_landscape
-
-
-def _null_set_portrait(window, isStackable):
-	pass
-
-
-def _maemo_set_portrait(window, isStackable):
-	window.setAttribute(QtCore.Qt.WA_Maemo5StackedWindow, isStackable)
-
-
-try:
 	QtCore.Qt.WA_Maemo5PortraitOrientation
-	set_portrait = _maemo_set_portrait
+	set_window_orientation = _maemo_set_window_orientation
 except AttributeError:
-	set_portrait = _null_set_portrait
+	set_window_orientation = _null_set_window_orientation
 
 
 def _null_show_progress_indicator(window, isStackable):
@@ -289,7 +316,7 @@ def _null_show_progress_indicator(window, isStackable):
 
 
 def _maemo_show_progress_indicator(window, isStackable):
-	window.setAttribute(QtCore.Qt.WA_Maemo5StackedWindow, isStackable)
+	window.setAttribute(QtCore.Qt.WA_Maemo5ShowProgressIndicator, isStackable)
 
 
 try:
@@ -312,14 +339,6 @@ try:
 	mark_numbers_preferred = _newqt_mark_numbers_preferred
 except AttributeError:
 	mark_numbers_preferred = _null_mark_numbers_preferred
-
-
-def screen_orientation():
-	geom = QtGui.QApplication.desktop().screenGeometry()
-	if geom.width() <= geom.height():
-		return QtCore.Qt.Vertical
-	else:
-		return QtCore.Qt.Horizontal
 
 
 def _null_get_theme_icon(iconNames, fallback = None):

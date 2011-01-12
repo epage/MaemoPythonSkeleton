@@ -3,12 +3,13 @@
 from __future__ import with_statement
 from __future__ import division
 
+import logging
+
 from PyQt4 import QtGui
 from PyQt4 import QtCore
 
 from util import qui_utils
 from util import misc as misc_utils
-import logging
 
 
 _moduleLogger = logging.getLogger(__name__)
@@ -29,6 +30,12 @@ class ApplicationWrapper(object):
 		self._fullscreenAction.setCheckable(True)
 		self._fullscreenAction.setShortcut(QtGui.QKeySequence("CTRL+Enter"))
 		self._fullscreenAction.toggled.connect(self._on_toggle_fullscreen)
+
+		self._orientationAction = QtGui.QAction(None)
+		self._orientationAction.setText("Orientation")
+		self._orientationAction.setCheckable(True)
+		self._orientationAction.setShortcut(QtGui.QKeySequence("CTRL+o"))
+		self._orientationAction.toggled.connect(self._on_toggle_orientation)
 
 		self._logAction = QtGui.QAction(None)
 		self._logAction.setText("Log")
@@ -79,6 +86,10 @@ class ApplicationWrapper(object):
 		return self._fullscreenAction
 
 	@property
+	def orientationAction(self):
+		return self._orientationAction
+
+	@property
 	def logAction(self):
 		return self._logAction
 
@@ -111,8 +122,11 @@ class ApplicationWrapper(object):
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_toggle_fullscreen(self, checked = False):
-		for window in self._walk_children():
-			window.set_fullscreen(checked)
+		self._mainWindow.set_fullscreen(checked)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_toggle_orientation(self, checked = False):
+		self._mainWindow.set_orientation(checked)
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_about(self, checked = True):
@@ -137,7 +151,7 @@ class WindowWrapper(object):
 
 		self._errorDisplay = qui_utils.ErrorDisplay(self._app.errorLog)
 
-		self._layout = QtGui.QVBoxLayout()
+		self._layout = QtGui.QBoxLayout(QtGui.QBoxLayout.LeftToRight)
 		self._layout.setContentsMargins(0, 0, 0, 0)
 		self._layout.addWidget(self._errorDisplay.toplevel)
 
@@ -147,9 +161,7 @@ class WindowWrapper(object):
 
 		self._window = QtGui.QMainWindow(parent)
 		self._window.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
-		qui_utils.set_autorient(self._window, True)
 		qui_utils.set_stackable(self._window, True)
-		self._window.setWindowIcon(QtGui.QIcon(self._app.appIconPath))
 		self._window.setCentralWidget(centralWidget)
 
 		self._closeWindowAction = QtGui.QAction(None)
@@ -157,12 +169,10 @@ class WindowWrapper(object):
 		self._closeWindowAction.setShortcut(QtGui.QKeySequence("CTRL+w"))
 		self._closeWindowAction.triggered.connect(self._on_close_window)
 
-		toolsMenu = self._window.menuBar().addMenu("&Tools")
-		toolsMenu.addAction(self._app.aboutAction)
-
 		self._window.addAction(self._closeWindowAction)
 		self._window.addAction(self._app.quitAction)
 		self._window.addAction(self._app.fullscreenAction)
+		self._window.addAction(self._app.orientationAction)
 		self._window.addAction(self._app.logAction)
 
 	@property
@@ -202,6 +212,18 @@ class WindowWrapper(object):
 			self._window.showNormal()
 		for child in self.walk_children():
 			child.set_fullscreen(isFullscreen)
+
+	def set_orientation(self, isPortrait):
+		if isPortrait:
+			qui_utils.set_window_orientation(self.window, QtCore.Qt.Vertical)
+		else:
+			qui_utils.set_window_orientation(self.window, QtCore.Qt.Horizontal)
+		for child in self.walk_children():
+			child.set_orientation(isPortrait)
+
+	@misc_utils.log_exception(_moduleLogger)
+	def _on_child_close(self):
+		raise NotImplementedError("Booh")
 
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_close_window(self, checked = True):
