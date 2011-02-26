@@ -6,6 +6,7 @@ from __future__ import with_statement
 import os
 import simplejson
 import logging
+import logging.handlers
 
 from PyQt4 import QtGui
 
@@ -78,6 +79,29 @@ class MainWindow(qwrappers.WindowWrapper):
 
 
 def run():
+	try:
+		os.makedirs(constants._data_path_)
+	except OSError, e:
+		if e.errno != 17:
+			raise
+
+	try:
+		os.makedirs(constants._cache_path_)
+	except OSError, e:
+		if e.errno != 17:
+			raise
+
+	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
+	logging.basicConfig(level=logging.DEBUG, format=logFormat)
+	rotating = logging.handlers.RotatingFileHandler(constants._user_logpath_, maxBytes=512*1024, backupCount=1)
+	rotating.setFormatter(logging.Formatter(logFormat))
+	root = logging.getLogger()
+	root.addHandler(rotating)
+	_moduleLogger.info("%s %s-%s" % (constants.__app_name__, constants.__version__, constants.__build__))
+	_moduleLogger.info("OS: %s" % (os.uname()[0], ))
+	_moduleLogger.info("Kernel: %s (%s) for %s" % os.uname()[2:])
+	_moduleLogger.info("Hostname: %s" % os.uname()[1])
+
 	app = QtGui.QApplication([])
 	handle = REPLACEME(app)
 	return app.exec_()
@@ -85,14 +109,5 @@ def run():
 
 if __name__ == "__main__":
 	import sys
-
-	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
-	logging.basicConfig(level=logging.DEBUG, format=logFormat)
-	try:
-		os.makedirs(constants._data_path_)
-	except OSError, e:
-		if e.errno != 17:
-			raise
-
 	val = run()
 	sys.exit(val)
