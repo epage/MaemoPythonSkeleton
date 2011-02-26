@@ -250,6 +250,41 @@ class QHtmlDelegate(QtGui.QStyledItemDelegate):
 		return size
 
 
+class QGraphicsEventController(QtCore.QObject):
+
+	keyPressEvent = QtCore.pyqtSignal(QtGui.QKeyEvent)
+	keyReleaseEvent = QtCore.pyqtSignal(QtGui.QKeyEvent)
+	mousePressEvent = QtCore.pyqtSignal(QtGui.QGraphicsSceneMouseEvent)
+	mouseReleaseEvent = QtCore.pyqtSignal(QtGui.QGraphicsSceneMouseEvent)
+	mouseMoveEvent = QtCore.pyqtSignal(QtGui.QGraphicsSceneMouseEvent)
+
+
+class QGraphicsScene(QtGui.QGraphicsScene):
+
+	def __init__(self):
+		QtGui.QGraphicsScene.__init__(self)
+		self._events = QGraphicsEventController()
+
+	@property
+	def events(self):
+		return self._events
+
+	def keyPressEvent(self, keyEvent):
+		self._events.keyPressEvent.emit(keyEvent)
+
+	def keyReleaseEvent(self, keyEvent):
+		self._events.keyReleaseEvent.emit(keyEvent)
+
+	def mousePressEvent(self, mouseEvent):
+		self._events.mousePressEvent.emit(mouseEvent)
+
+	def mouseReleaseEvent(self, mouseEvent):
+		self._events.mouseReleaseEvent.emit(mouseEvent)
+
+	def mouseMoveEvent(self, mouseEvent):
+		self._events.mouseMoveEvent.emit(mouseEvent)
+
+
 def _null_set_stackable(window, isStackable):
 	pass
 

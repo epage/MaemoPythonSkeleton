@@ -5,3 +5,4 @@ Type=Application
 Name=REPLACEME
 Exec=/usr/bin/run-standalone.sh REPLACEME.py
 Icon=REPLACEME
+Categories=Qt;
