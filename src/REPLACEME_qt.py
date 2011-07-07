@@ -8,7 +8,9 @@ import simplejson
 import logging
 import logging.handlers
 
-from PyQt4 import QtGui
+import util.qt_compat as qt_compat
+QtCore = qt_compat.QtCore
+QtGui = qt_compat.import_module("QtGui")
 
 import constants
 from util import qwrappers
@@ -109,5 +111,6 @@ def run():
 
 if __name__ == "__main__":
 	import sys
+
 	val = run()
 	sys.exit(val)

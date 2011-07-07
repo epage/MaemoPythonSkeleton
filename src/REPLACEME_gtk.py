@@ -19,7 +19,7 @@ except ImportError:
 	osso = None
 
 import constants
-import hildonize
+import utils.hildonize as hildonize
 import util.misc as misc_utils
 
 
