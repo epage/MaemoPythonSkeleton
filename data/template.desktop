@@ -1,0 +1,27 @@
+[Desktop Entry]
+Name=REPLACEME
+GenericName=REPLACEME
+Comment=REPLACEME
+#[[[cog
+#	if VARIANT == "fremantle":
+#		cog.outl("Exec=/usr/bin/run-standalone.sh /usr/local/bin/%s" % PROGRAM)
+#	elif VARIANT == "harmattan":
+#		cog.outl("Exec=/usr/bin/invoker --single-instance --type=e /usr/local/bin/%s" % PROGRAM)
+#	elif VARIANT == "ubuntu":
+#		cog.outl("Exec=/usr/local/bin/%s" % PROGRAM)
+#	else:
+#		raise RuntimeError("Unsupported desktop file flavor %r" % PROGRAM)
+#
+#	if VARIANT == "harmattan":
+#		cog.outl("Icon=/usr/share/icons/hicolor/80x80/apps/%s.png" % ICON_NAME)
+#	else:
+#		cog.outl("Icon=%s" % ICON_NAME)
+#]]]
+Exec=/usr/local/bin/ejpi-calc
+Icon=ejpi
+#[[[end]]]
+Categories=Utility;Qt;
+Type=Application
+Encoding=UTF-8
+Version=1.0
+X-Osso-Type=application/x-executable

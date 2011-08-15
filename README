@@ -1,4 +1,20 @@
+Setting up a project
+===================
+grep --color -Irn "REPLACEME" .
+	grep for REPLACEME which is scattered throughout the files.
+find . -iname "*REPLACEME*"
+	To find files that need renaming
+Rename "src" to your project name
+ln -s PROJECT_NAME src
+Update support/obs_upload.sh with your OBS project path
+
+Examples:
+	https://github.com/epage/ejpi
+	https://github.com/epage/Gonvert
+
+
 Building a package
 ===================
 Run
 	make package
+	make upload

@@ -9,8 +9,9 @@ import qt_compat
 QtCore = qt_compat.QtCore
 QtGui = qt_compat.import_module("QtGui")
 
-from util import qui_utils
-from util import misc as misc_utils
+import qui_utils
+import misc as misc_utils
+import linux as linux_utils
 
 
 _moduleLogger = logging.getLogger(__name__)
@@ -169,7 +170,10 @@ class ApplicationWrapper(object):
 	@misc_utils.log_exception(_moduleLogger)
 	def _on_log(self, checked = False):
 		with qui_utils.notify_error(self._errorLog):
-			with open(self._constants._user_logpath_, "r") as f:
+			logPath = linux_utils.get_resource_path(
+				"cache", self._constants.__app_name__, "%s.log" % self._constants.__app_name__
+			)
+			with open(logPath, "r") as f:
 				logLines = f.xreadlines()
 				log = "".join(logLines)
 				self._clipboard.setText(log)
