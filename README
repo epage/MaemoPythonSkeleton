@@ -3,6 +3,8 @@ This is a skeleton for building packages for Maemo 4.1, Maemo 5, Meego-1.2-Harma
 For some background:
 * http://eopage.blogspot.com/2011/08/python-packaging-for-harmattan.html
 
+The main git home for src/utils is: https://github.com/epage/PythonUtils
+
 Depends on (I just copy it into my project):
 * https://gitorious.org/sdist_maemo/sdist_maemo
 
