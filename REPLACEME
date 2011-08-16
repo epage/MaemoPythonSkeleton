@@ -2,13 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-import sys
-
-
-sys.path.append("/opt/REPLACEME/lib")
-
-
-import REPLACEME_qt
+from REPLACEME import REPLACEME_qt
 
 
 if __name__ == "__main__":

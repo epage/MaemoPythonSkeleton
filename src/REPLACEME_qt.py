@@ -14,6 +14,7 @@ QtGui = qt_compat.import_module("QtGui")
 
 import constants
 from util import qwrappers
+from util import linux as linux_utils
 
 
 _moduleLogger = logging.getLogger(__name__)
@@ -82,20 +83,25 @@ class MainWindow(qwrappers.WindowWrapper):
 
 def run():
 	try:
-		os.makedirs(constants._data_path_)
+		os.makedirs(linux_utils.get_resource_path("config", constants.__app_name__))
 	except OSError, e:
 		if e.errno != 17:
 			raise
-
 	try:
-		os.makedirs(constants._cache_path_)
+		os.makedirs(linux_utils.get_resource_path("cache", constants.__app_name__))
+	except OSError, e:
+		if e.errno != 17:
+			raise
+	try:
+		os.makedirs(linux_utils.get_resource_path("data", constants.__app_name__))
 	except OSError, e:
 		if e.errno != 17:
 			raise
 
+	logPath = linux_utils.get_resource_path("cache", constants.__app_name__, "%s.log" % constants.__app_name__)
 	logFormat = '(%(relativeCreated)5d) %(levelname)-5s %(threadName)s.%(name)s.%(funcName)s: %(message)s'
 	logging.basicConfig(level=logging.DEBUG, format=logFormat)
-	rotating = logging.handlers.RotatingFileHandler(constants._user_logpath_, maxBytes=512*1024, backupCount=1)
+	rotating = logging.handlers.RotatingFileHandler(logPath, maxBytes=512*1024, backupCount=1)
 	rotating.setFormatter(logging.Formatter(logFormat))
 	root = logging.getLogger()
 	root.addHandler(rotating)
