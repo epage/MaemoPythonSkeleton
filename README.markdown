@@ -20,13 +20,14 @@ To find files that need renaming
 
     find . -iname "*REPLACEME*"
 
-Rename "src" to your project name
+Create your appropriately named python package (and ln src to it for easy diffing)
 
-ln -s PROJECT_NAME src
+    mv src REPLACEME
+	ln -s REPLACEME src
 
 Update support/obs_upload.sh with your OBS project path
 
-Examples:
+Examples Packages:
 
 * https://github.com/epage/ejpi
 * https://github.com/epage/Gonvert
